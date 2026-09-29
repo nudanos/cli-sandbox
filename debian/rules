@@ -6,7 +6,7 @@ DPKG_EXPORT_BUILDFLAGS=1
 include /usr/share/dpkg/default.mk
 
 %:
-	dh $@ --with=yang --with=systemd --with=python3
+	dh $@ --with yang --with python3
 
 override_dh_auto_test:
 	shellcheck tmplscripts/system/login/user_isolation.sh

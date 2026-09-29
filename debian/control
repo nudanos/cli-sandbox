@@ -1,8 +1,8 @@
 Source: cli-sandbox
-Section: contrib/net
+Section: net
 Priority: optional
-Maintainer: Vyatta Package Maintainers <DL-vyatta-help@att.com>
-Build-Depends: debhelper (>= 9),
+Maintainer: NuDanOS Maintainers <jon@fernandez.tech>
+Build-Depends: debhelper-compat (= 13),
  dh-yang,
  dh-python,
  python3-all,
@@ -10,9 +10,11 @@ Build-Depends: debhelper (>= 9),
  shellcheck,
  libsystemd-dev,
  pkg-config,
- libpam0g-dev,
- debhelper (>= 9.20160709) | dh-systemd (>= 1.5)
-Standards-Version: 3.9.8
+ libpam0g-dev
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Vcs-Git: https://github.com/nudanos/cli-sandbox.git
+Vcs-Browser: https://github.com/nudanos/cli-sandbox
 
 Package: python3-shared-storage
 Architecture: all

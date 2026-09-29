@@ -1,3 +1,9 @@
+cli-sandbox (0.28) trixie; urgency=medium
+
+  * Port to Debian 13 (trixie): debhelper-compat 13, Standards-Version 4.7.2, Rules-Requires-Root, NuDanOS Vcs.
+
+ -- NuDanOS Maintainers <jon@fernandez.tech>  Mon, 28 Sep 2026 23:08:46 -0700
+
 cli-sandbox (0.27) unstable; urgency=medium
 
   [ Sharmila Podury ]
