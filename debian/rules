@@ -12,6 +12,6 @@ override_dh_auto_test:
 	shellcheck tmplscripts/system/login/user_isolation.sh
 	shellcheck scripts/cli_sandbox_init
 
-override_dh_systemd_enable:
-	dh_systemd_enable -p cli-sandbox --name=cli-sandbox@
-	dh_systemd_enable -p cli-sandbox --name=shared_storage
+override_dh_installsystemd:
+	dh_installsystemd -p cli-sandbox --name=cli-sandbox@
+	dh_installsystemd -p cli-sandbox --name=shared_storage
