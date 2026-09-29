@@ -23,8 +23,8 @@ $(TARGET_LIB): $(OBJ)
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 install: $(TARGET_LIB)
-	mkdir -p $(DESTDIR)/lib/security
-	install -m644 $(TARGET_LIB) $(DESTDIR)/lib/security
+	mkdir -p $(DESTDIR)/usr/lib/security
+	install -m644 $(TARGET_LIB) $(DESTDIR)/usr/lib/security
 	mkdir -p $(DESTDIR)/opt/vyatta/share/pam-configs
 	install -m644 $(SRCDIR)/pam-configs/sandbox \
 		$(DESTDIR)/opt/vyatta//share/pam-configs/sandbox
