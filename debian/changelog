@@ -1,3 +1,10 @@
+cli-sandbox (0.30) trixie; urgency=medium
+
+  * pam-sandbox.prerm: remove the PAM profile postinst copies into
+    /usr/share/pam-configs.
+
+ -- NuDanOS Maintainers <jon@fernandez.tech>  Fri, 02 Oct 2026 13:11:53 -0700
+
 cli-sandbox (0.29) trixie; urgency=medium
 
   * New cli-sandbox-create, run from the vyatta-system-login-user-isolation

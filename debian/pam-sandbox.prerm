@@ -2,6 +2,8 @@
 
 if [ "$1" = remove ]; then
     pam-auth-update --package --remove sandbox
+    # copied in by postinst, not owned by dpkg
+    rm -f /usr/share/pam-configs/sandbox
 fi
 
 #DEBHELPER#
