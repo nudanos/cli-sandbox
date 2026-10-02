@@ -1,2 +1,3 @@
 yang/vyatta-system-login-user-isolation-v1.yang usr/share/configd/yang
 tmplscripts/system/login/user_isolation.sh opt/vyatta/share/tmplscripts/system/login
+scripts/cli-sandbox-create usr/sbin

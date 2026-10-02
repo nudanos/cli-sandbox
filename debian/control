@@ -44,6 +44,6 @@ Description: PAM module for user sandboxing
 
 Package: vyatta-system-login-user-isolation-v1-yang
 Architecture: all
-Depends: pam-sandbox, cli-sandbox, ${yang:Depends}, ${misc:Depends}
+Depends: pam-sandbox, cli-sandbox, mmdebstrap, ${yang:Depends}, ${misc:Depends}
 Description: yang module for vyatta-user-isolation
  This package provides the user isolation configuration

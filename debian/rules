@@ -11,6 +11,7 @@ include /usr/share/dpkg/default.mk
 override_dh_auto_test:
 	shellcheck tmplscripts/system/login/user_isolation.sh
 	shellcheck scripts/cli_sandbox_init
+	shellcheck scripts/cli-sandbox-create
 
 override_dh_installsystemd:
 	dh_installsystemd -p cli-sandbox --name=cli-sandbox@

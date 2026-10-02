@@ -1,3 +1,11 @@
+cli-sandbox (0.29) trixie; urgency=medium
+
+  * New cli-sandbox-create, run from the vyatta-system-login-user-isolation
+    postinst: builds the sandbox root with mmdebstrap (replaces the DANOS
+    build-iso hook 0990-create-chroot-fs).
+
+ -- NuDanOS Maintainers <jon@fernandez.tech>  Fri, 02 Oct 2026 08:28:45 -0700
+
 cli-sandbox (0.28) trixie; urgency=medium
 
   * Port to Debian 13 (trixie): debhelper-compat 13, Standards-Version 4.7.2, Rules-Requires-Root, NuDanOS Vcs.

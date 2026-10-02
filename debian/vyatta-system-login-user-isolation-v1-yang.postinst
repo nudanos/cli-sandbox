@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+case "$1" in
+    configure) /usr/sbin/cli-sandbox-create || echo "warning: could not create the sandbox root; run cli-sandbox-create" >&2 ;;
+esac
+#DEBHELPER#
+exit 0

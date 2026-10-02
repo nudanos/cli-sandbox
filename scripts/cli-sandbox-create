@@ -1,0 +1,17 @@
+#!/bin/sh
+# Create the user-isolation sandbox root (DANOS build-iso hook
+# 0990-create-chroot-fs) from this system's apt sources.
+# SPDX-License-Identifier: GPL-2.0-only
+set -eu
+ROOT=${1:-/var/lib/sandbox}
+INCLUDES="vyatta-op-shell,vyatta-config-shell,vyatta-bash,bash-completion,openssh-client,vcli,locales,vyatta-password-renewal"
+[ -e "$ROOT/etc/os-release" ] && exit 0
+# Each sources file is its own argument: mmdebstrap reads one-line .list
+# and deb822 .sources files by extension, but not the two mixed on stdin.
+set --
+for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+    if [ -s "$f" ]; then set -- "$@" "$f"; fi
+done
+mkdir -p "$ROOT"
+mmdebstrap --variant=minbase --include="$INCLUDES" trixie "$ROOT" "$@"
+chroot "$ROOT" apt-get clean
