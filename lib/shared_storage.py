@@ -52,21 +52,22 @@ def mkdir_p(path):
 def cmd_run(cmd, ignore=None):
     """run a command. Raise exception unless ignore is True"""
     try:
-        subprocess.run(cmd, check=(not ignore))
+        subprocess.run(cmd, check=not ignore)
     except subprocess.CalledProcessError as exc:
-        raise SharedStorageError("comand {} exited with {}".format(exc.cmd, exc.returncode))
+        raise SharedStorageError(
+            f"comand {exc.cmd} exited with {exc.returncode}") from exc
 
 
 def get_backing_file_name(top, path):
     """generate file name for loop mount from path"""
     base = check_output_(['/bin/systemd-escape', '--path', path])
-    return os.path.realpath('{}/{}.img'.format(top, base))
+    return os.path.realpath(f'{top}/{base}.img')
 
 
 def is_child_dir(parent, child):
     """Check if child is a subdirectory of parent.
     Expects sanitized paths"""
-    return child.startswith(parent + '/')
+    return child.startswith(f"{parent}/")
 
 
 def mount_point(path):
@@ -90,7 +91,8 @@ def validate_path(path):
     to avoid symlinks or .. or related paths"""
     rpath = os.path.abspath(os.path.realpath(path))
     if path != rpath:
-        raise SharedStorageError('Invalid path {}: realpath {} is different'.format(path, rpath))
+        raise SharedStorageError(
+            f'Invalid path {path}: realpath {rpath} is different')
 
 
 def get_loopdev_field(name, field):
@@ -106,7 +108,7 @@ def get_loopdev_field(name, field):
                 return record[field]
         return None
     except json.JSONDecodeError as exc:
-        print("decode error in losetup output: {}".format(str(exc)))
+        print(f"decode error in losetup output: {exc!s}")
     except KeyError:
         print("No back-file in losetup output")
     return None
@@ -124,7 +126,8 @@ def check_mount(what, where):
             source = get_loopdev_field(source, 'back-file')
         return source == what
     except subprocess.CalledProcessError as exc:
-        print("Command {} exited with {}".format(exc.cmd, exc.returncode), file=sys.stderr)
+        print(f"Command {exc.cmd} exited with {exc.returncode}",
+              file=sys.stderr)
         return False
 
 
@@ -146,24 +149,24 @@ class SharedStorage:
         self.tree = {}
 
     def __repr__(self):
-        return "SharedStorage(mounts:{} dirs:{})".format(
-            repr(self.mounts),
-            repr(self.dirs))
+        return f"SharedStorage(mounts:{self.mounts!r} dirs:{self.dirs!r})"
 
     def load(self, stream=None, conf_file=None):
         """load configuration from a stream"""
         if not stream and not conf_file:
             return
+        # safe_load: PyYAML 6 needs a Loader for load(), and write() stores
+        # plain YAML (safe_dump)
         try:
             if stream is None:
-                with open(conf_file, 'r') as cfile:
-                    conf = yaml.load(cfile)
+                with open(conf_file, 'r', encoding='utf-8') as cfile:
+                    conf = yaml.safe_load(cfile)
             else:
-                conf = yaml.load(stream)
-        except FileNotFoundError as exc:
+                conf = yaml.safe_load(stream)
+        except FileNotFoundError:
             return
         except yaml.YAMLError as exc:
-            raise SharedStorageError(str(exc))
+            raise SharedStorageError(str(exc)) from exc
         if 'mounts' in conf:
             self.validate_and_add_mounts(conf['mounts'])
         if 'dirs' in conf:
@@ -171,7 +174,8 @@ class SharedStorage:
 
     def dump(self):
         """Return a yaml configuration string"""
-        return yaml.safe_dump({'mounts': self.mounts, 'dirs': self.dirs}, default_flow_style=False)
+        return yaml.safe_dump({'mounts': self.mounts, 'dirs': self.dirs},
+                              default_flow_style=False)
 
     def write(self, conf_file=None):
         """Write configuration to File"""
@@ -188,7 +192,7 @@ class SharedStorage:
             os.rename(tfname, conf_file)
             os.chmod(conf_file, 0o644)
         except OSError as exc:
-            print("failed to create temporary file: {}".format(str(exc)))
+            print(f"failed to create temporary file: {exc!s}")
         finally:
             if tfname and os.path.exists(tfname):
                 os.remove(tfname)
@@ -224,41 +228,46 @@ class SharedStorage:
         for pname in mnt.split('/'):
             tmp = node['children'].get(pname)
             if not tmp:
-                node['children'][pname] = {'name': pname, 'is_mnt': False, 'children': {}}
+                node['children'][pname] = {'name': pname, 'is_mnt': False,
+                                           'children': {}}
                 node = node['children'][pname]
             elif tmp['is_mnt']:
-                raise SharedStorageError("overlapped mount {}".format(mnt))
+                raise SharedStorageError(f"overlapped mount {mnt}")
             else:
                 node = tmp
         node['is_mnt'] = True
 
     def add_dir(self, path, perm, replace=False):
-        """add a directoty with perm. Raise exception if directory already exists"""
+        """add a directoty with perm. Raise exception if directory already
+        exists"""
         if not path:
-            raise SharedStorageError("{}.add_dir(): path is None ".format(self.__class__.__name__))
+            raise SharedStorageError(
+                f"{self.__class__.__name__}.add_dir(): path is None ")
         if perm and perm not in {'r', 'rw'}:
             raise SharedStorageError(
-                "{}.add_dir(): invalid perm: {}".format(self.__class__.__name__, perm))
+                f"{self.__class__.__name__}.add_dir(): invalid perm: {perm}")
         validate_path(path)
         if not replace and path in self.dirs:
             raise SharedStorageError(
-                "{}.add_dir(): {} exists".format(self.__class__.__name__, path))
+                f"{self.__class__.__name__}.add_dir(): {path} exists")
         self.dirs[path] = {'perm': perm}
 
+    # pylint: disable-next=R0913,R0917 ; reason: callers pass all six
     def add_mount(self, path, perm, what, size, allow_exec, replace=False):
         """add a mount with perm if possible"""
         if perm and perm not in {'r', 'rw'}:
             raise SharedStorageError(
-                "{}.add_mount(): invalid perm: {}".format(self.__class__.__name__, perm))
+                f"{self.__class__.__name__}.add_mount(): invalid perm: {perm}")
         validate_path(path)
         validate_path(what)
         if path in self.mounts:
             if not replace:
                 raise SharedStorageError(
-                    "{}.add_mount(): {} exists".format(self.__class__.__name__, path))
+                    f"{self.__class__.__name__}.add_mount(): {path} exists")
         else:
             self.check_update_mount_tree(path)
-        self.mounts[path] = {'perm': perm, 'what': what, 'size': size, 'exec': allow_exec}
+        self.mounts[path] = {'perm': perm, 'what': what, 'size': size,
+                             'exec': allow_exec}
 
     def validate_and_add_dirs(self, cfg):
         """validate directory entries from yaml config"""
@@ -280,7 +289,8 @@ class SharedStorage:
         try:
             for k, entry in cfg.items():
                 if not entry:
-                    raise SharedStorageError("Invalid mountpoint {}: mount infor missing".format(k))
+                    raise SharedStorageError(
+                        f"Invalid mountpoint {k}: mount infor missing")
                 perm = entry.get('perm')
                 if not perm:
                     perm = 'r'
@@ -292,11 +302,14 @@ class SharedStorage:
                     entry['exec'] = False
                 if not (size and what and os.path.isabs(what)):
                     raise SharedStorageError(
-                        "Invalid entry {}: size({}) or device ({}) missing".format(k, size, what))
+                        f"Invalid entry {k}: size({size}) "
+                        f"or device ({what}) missing")
                 self.add_mount(k, perm, what, size, allow_exec)
         except (AttributeError, TypeError, KeyError) as exc:
-            raise SharedStorageError("Error while validating config: {}".format(str(exc)))
+            raise SharedStorageError(
+                f"Error while validating config: {exc!s}") from exc
 
     def get_current_mounts(self):
         """returns set of mounts that are currently valid"""
-        return {path for path in self.mounts if check_mount(self.mounts[path]['what'], path)}
+        return {path for path, info in self.mounts.items()
+                if check_mount(info['what'], path)}

@@ -23,7 +23,8 @@ import sys
 import subprocess
 from argparse import ArgumentParser
 from vyatta import configd
-from vyatta.shared_storage import SharedStorage, SharedStorageError, get_backing_file_name
+from vyatta.shared_storage import (SharedStorage, SharedStorageError,
+                                   get_backing_file_name)
 
 SHARED_STATIC_CONF = '/etc/vyatta/shared_storage/allowed_dirs.conf'
 SHARED_RUN_CONF = '/run/vyatta/shared_storage/shared_storage.conf'
@@ -39,7 +40,8 @@ def update_shared_storage(ss_conf, cfg):
         check_path_size(run_conf, path, info['size'])
         fname = get_backing_file_name(FS_IMAGE_PATH, path)
         try:
-            ss_conf.add_mount(path, 'rw', fname, info['size'], 'allow-exec' in info)
+            ss_conf.add_mount(path, 'rw', fname, info['size'],
+                              'allow-exec' in info)
         except SharedStorageError as exc:
             print(str(exc), file=sys.stderr)
 
@@ -62,7 +64,7 @@ def update_config():
     except (configd.Exception, KeyError):
         cfg = {}
     except configd.FatalException as exc:
-        print("Can't connect to configed: {}".format(str(exc)))
+        print(f"Can't connect to configed: {exc!s}")
         sys.exit(1)
 
     ss_conf = SharedStorage()
@@ -71,7 +73,8 @@ def update_config():
     if 'read-only-directory' in cfg:
         update_directories(ss_conf, cfg['read-only-directory'])
     ss_conf.write(SHARED_RUN_CONF)
-    subprocess.run(['systemctl', 'reload-or-restart', 'shared_storage.service'])
+    subprocess.run(['systemctl', 'reload-or-restart',
+                    'shared_storage.service'], check=False)
 
 
 def check_path_one(cfile, path, mode):
@@ -93,13 +96,14 @@ def check_path_size(ss_conf, path, size):
     """Check if shared storage size is being changed"""
     try:
         if size != ss_conf.mounts[path]["size"]:
-            print("Shared storage " + path + " size cannot be changed.")
+            print(f"Shared storage {path} size cannot be changed.")
     except KeyError:
         pass
 
 
 def main():
-    parser = ArgumentParser(description="Vyatta Shared Storage Management Tool")
+    parser = ArgumentParser(
+        description="Vyatta Shared Storage Management Tool")
     parser.add_argument("-u",
                         '--update',
                         help='update configuration file at commit',
@@ -109,7 +113,8 @@ def main():
                         nargs=1,
                         choices=['r', 'rw'],
                         help="check read/read-write permission")
-    parser.add_argument('path', nargs='?', help="check permission for this path")
+    parser.add_argument('path', nargs='?',
+                        help="check permission for this path")
     args = parser.parse_args()
     if args.update:
         if args.check or args.path:

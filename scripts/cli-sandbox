@@ -48,12 +48,14 @@ ENV_USER = 'CLI_SANDBOX_USER'
 # Shared Storage configuration file
 SHARED_RUN_CONF = '/run/vyatta/shared_storage/shared_storage.conf'
 
-# Rootfs overlay isn't going io contain much data, as most of the cotains is from
-# the read-only rootfs under directory. It is going to contain only a few states
+# Rootfs overlay isn't going io contain much data, as most of the cotains is
+# from the read-only rootfs under directory. It is going to contain only a few
+# states
 # information and few scripts that are pulled it in runtime.
 ROOT_TMP_FS_MAX = '1m'
 
-# Used by call to sb_run(cmd, IGNORE) when we want ignore the results of a command
+# Used by call to sb_run(cmd, IGNORE) when we want ignore the results of a
+# command
 IGNORE = True
 
 # command-not-found handler script variables for sandbox
@@ -73,7 +75,7 @@ def sb_run(cmd, ignore=False, env=None):
     try:
         subprocess.run(cmd, check=(not ignore), env=env)
     except subprocess.CalledProcessError as err:
-        print('Failed: {}:{}'.format(' '.join(cmd), str(err)), file=sys.stderr)
+        print(f"Failed: {' '.join(cmd)}:{err!s}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -86,10 +88,11 @@ def get_current_shares():
 
 def run_shell_cmd(cmd):
     try:
-        with open("/dev/null", "w") as ignore:
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=ignore)
-    except Exception as e:
-        print("Failed to fetch op commands: {}".format(e))
+        # pylint: disable-next=R1732 ; reason: read line by line below
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL)
+    except OSError as e:
+        print(f"Failed to fetch op commands: {e}")
         return ""
 
     while True:
@@ -102,12 +105,14 @@ def run_shell_cmd(cmd):
 
 
 def remove_native_op_cmds(chroot):
-    cmd = ['/opt/vyatta/sbin/lu', '-user', 'configd', '/opt/vyatta/bin/opc', '-op', 'complete']
+    cmd = ['/opt/vyatta/sbin/lu', '-user', 'configd', '/opt/vyatta/bin/opc',
+           '-op', 'complete']
     out = run_shell_cmd(cmd)
     if not out:
         return
 
-    os.environ["PATH"] = '/usr/local/bin:/usr/bin:/bin:/opt/vyatta/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/vyatta/sbin'
+    os.environ["PATH"] = ('/usr/local/bin:/usr/bin:/bin:/opt/vyatta/bin:'
+                          '/usr/local/sbin:/usr/sbin:/sbin:/opt/vyatta/sbin')
     ops = re.search(r'\((.*?)\)', out).group(1).split(' ')
     for op in ops:
         op = op.strip("'")
@@ -126,22 +131,22 @@ def remove_native_op_cmds(chroot):
                 # link to non-existing file under read only directory
                 os.symlink('/var/run/vyatta/.does_not_exist', out)
         except OSError as e:
-            print("Exception when removing native op commands: {}".format(e))
+            print(f"Exception when removing native op commands: {e}")
 
 
 def gen_machine_name(uid):
-    return 'cli-{}'.format(uid)
+    return f'cli-{uid}'
 
 
 def write_command_not_found(chroot):
     """change command-not-found handler in chroot"""
     try:
         fname = chroot + CNF_FILENAME
-        with open(fname, 'w') as cnf:
+        with open(fname, 'w', encoding='utf-8') as cnf:
             cnf.write(CNF_SCRIPT)
         os.chmod(fname, 0o755)
-    except:
-        print("Exception when writing {}".format(CNF_FILENAME))
+    except OSError:
+        print(f"Exception when writing {CNF_FILENAME}")
 
 
 def generate_passwd_database(chroot, pw_entry, base_passwd=None):
@@ -166,7 +171,7 @@ def generate_passwd_database(chroot, pw_entry, base_passwd=None):
     with tmp_passwd:
         if base_passwd is not None:
             for line in base_passwd:
-                if line.startswith(pw_entry.pw_name + ':'):
+                if line.startswith(f"{pw_entry.pw_name}:"):
                     continue
                 tmp_passwd.write(line)
 
@@ -216,8 +221,8 @@ def generate_group_database(chroot, pw_entry, base_group=None):
                         # In the unlikely event of a GID being assigned to
                         # multiple groups, prefer the group from the system
                         # database.
-                        print("Group ID {} collision - using {} over {}".format(
-                            group.gr_gid, user_group.gr_name, group.gr_name))
+                        print(f"Group ID {group.gr_gid} collision - using "
+                              f"{user_group.gr_name} over {group.gr_name}")
                         continue
 
                     if pw_entry.pw_name not in group.gr_mem:
@@ -283,7 +288,8 @@ class UserSandBox:
             self.machine = gen_machine_name(uid)
 
         self.topdir = os.path.join(self.RUNDIR, name)
-        self.settings = os.path.join(self.SETTINGS_DIR, self.machine + '.nspawn')
+        self.settings = os.path.join(self.SETTINGS_DIR,
+                                     f"{self.machine}.nspawn")
         self.root = os.path.join(self.topdir, self.machine)
         self.env = {
             ENV_NSPAWN_TEMPLATE: self.settings,
@@ -304,9 +310,10 @@ class UserSandBox:
 
     def _write_env(self):
         prev_mask = os.umask(0o077)
-        with open(os.path.join(self.topdir, self.ENVFILE), 'w') as f:
+        with open(os.path.join(self.topdir, self.ENVFILE), 'w',
+                  encoding='utf-8') as f:
             for n, v in self.env.items():
-                f.write("{}={}\n".format(n, v))
+                f.write(f"{n}={v}\n")
         os.umask(prev_mask)
 
     def get_moved_mounts(self):
@@ -317,7 +324,7 @@ class UserSandBox:
         These are mounted under /.mounts in sandbox root director.
         """
         def bind_str(fname):
-            return "{}:/.mounts/{}".format(fname, fname.replace('/', '_'))
+            return f"{fname}:/.mounts/{fname.replace('/', '_')}"
 
         return [bind_str(os.path.abspath(x))
                 for x in self.MOVED_MOUNTS if os.path.exists(x)]
@@ -331,7 +338,7 @@ class UserSandBox:
             os.mkdir(os.path.dirname(self.settings), 0o755)
         shutil.copy2(self.NSPAWN_TEMPLATE, self.settings)
         bindfmt = "Bind={}\n"
-        with open(self.settings, 'a') as fout:
+        with open(self.settings, 'a', encoding='utf-8') as fout:
             fout.write("\n[Files]\n")
             if os.path.isdir(self.pw_entry.pw_dir):
                 fout.write(bindfmt.format(self.pw_entry.pw_dir))
@@ -344,14 +351,16 @@ class UserSandBox:
         # Use any existing /etc/passwd from the pristine chroot to
         # determine the base system users to setup in the sandbox.
         try:
-            base_passwd = open(os.path.join(self.DISTDIR, 'etc', 'passwd'), 'r')
+            base_passwd = open(os.path.join(self.DISTDIR, 'etc', 'passwd'),
+                               'r', encoding='utf-8')
         except OSError:
             base_passwd = contextlib.nullcontext([])
 
         # Similarly use any existing /etc/group to determine the
         # base system groups to setup.
         try:
-            base_groups = open(os.path.join(self.DISTDIR, 'etc', 'group'), 'r')
+            base_groups = open(os.path.join(self.DISTDIR, 'etc', 'group'),
+                               'r', encoding='utf-8')
         except OSError:
             base_groups = contextlib.nullcontext([])
 
@@ -363,7 +372,7 @@ class UserSandBox:
         self.edit_nspawn_template()
         os.makedirs(self.topdir)
         mntcmd = ['/bin/mount', '-t', 'tmpfs',
-                  '-o', 'size=' + ROOT_TMP_FS_MAX + ',mode=0755',
+                  '-o', f"size={ROOT_TMP_FS_MAX},mode=0755",
                   'tmpfs', self.topdir
                   ]
         sb_run(mntcmd)
@@ -374,7 +383,8 @@ class UserSandBox:
         os.mkdir(work)
         os.mkdir(upper)
         mntcmd = ['/bin/mount', '-t', 'overlay',
-                  '-o', 'lowerdir={},upperdir={},workdir={}'.format(self.DISTDIR, upper, work),
+                  '-o', (f'lowerdir={self.DISTDIR},upperdir={upper},'
+                         f'workdir={work}'),
                   'overlayfs',
                   self.root,
                   ]
@@ -386,7 +396,8 @@ class UserSandBox:
         os.chmod(os.path.join(self.root, os.path.basename(self.INIT2)), 0o755)
         os.mkdir(os.path.join(self.root, '.mounts'), 0o700)
         hname = os.uname()[1]
-        with open(os.path.join(self.root, 'hostname.sandbox'), 'w') as outfile:
+        with open(os.path.join(self.root, 'hostname.sandbox'), 'w',
+                  encoding='utf-8') as outfile:
             print(hname, file=outfile)
 
         if os.path.isdir(self.INIT_HOOKS_DIR):
@@ -434,15 +445,17 @@ class UserSandBox:
         # Therefore use an exec() function, ie. without forking, so that
         # systemd-nspawn maintains our PID.
 
-        os.execl(nspawn, nspawn, '--quiet', '--keep-unit', '--private-users=no',
+        os.execl(nspawn, nspawn, '--quiet', '--keep-unit',
+                 '--private-users=no',
                  '--private-network', '--settings=override',
-                 '--directory={}'.format(self.root),
-                 '--machine={}'.format(self.machine))
+                 f'--directory={self.root}',
+                 f'--machine={self.machine}')
 
 
 def main():
     """Main cli-sandbox Program"""
-    parser = ArgumentParser(description='Vyatta CLI Sanbox Service Rootfs Setup tool')
+    parser = ArgumentParser(
+        description='Vyatta CLI Sanbox Service Rootfs Setup tool')
     action_grp = parser.add_mutually_exclusive_group(required=True)
     action_grp.add_argument('-c',
                             '--create',
@@ -475,7 +488,7 @@ def main():
             sandbox.create_sandbox()
             sys.exit(0)
         except OSError as err:
-            print('Failed to create sandbox {}:{}'.format(sandbox.name, str(err)))
+            print(f'Failed to create sandbox {sandbox.name}:{err!s}')
             sys.exit(1)
 
     if args.update:
@@ -483,7 +496,7 @@ def main():
             sandbox.update_sandbox()
             sys.exit(0)
         except OSError as err:
-            print('Failed to update sandbox {}:{}'.format(sandbox.name, str(err)))
+            print(f'Failed to update sandbox {sandbox.name}:{err!s}')
             sys.exit(1)
 
     if args.destroy:
@@ -491,14 +504,14 @@ def main():
             sandbox.destroy_sandbox()
             sys.exit(0)
         except OSError as err:
-            print('Failed to cleanup sandbox {}:{}'.format(sandbox.name, str(err)))
+            print(f'Failed to cleanup sandbox {sandbox.name}:{err!s}')
             sys.exit(1)
 
     if args.start:
         try:
             sandbox.start_sandbox()
         except OSError as err:
-            print('Failed to start sandbox {}: {}'.format(sandbox.name, err))
+            print(f'Failed to start sandbox {sandbox.name}: {err}')
             sys.exit(1)
 
     # unreached #

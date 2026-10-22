@@ -21,8 +21,7 @@ def format_group_database_entry(group):
     group should be a struct_group instance or
     equivalent sequence eg. [ "users", "x", 100, [] ]
     """
-    return ':'.join(str(x) for x in group[0:3]) + \
-        ':' + ','.join(group[3])
+    return f"{':'.join((str(x) for x in group[0:3]))}:{','.join(group[3])}"
 
 
 def parse_group_database(db_iter):

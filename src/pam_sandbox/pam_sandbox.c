@@ -103,7 +103,7 @@ int pam_sm_open_session(pam_handle_t * pamh, __attribute__ ((unused))
 {
 	const char *username;
 	int r;
-	struct passwd *pw;
+	const struct passwd *pw;
 	int enter_sandbox_retry = 1;
 
 	r = pam_get_user(pamh, &username, NULL);
@@ -179,7 +179,7 @@ static int enter_sandbox(pam_handle_t * pamh, const struct passwd *pw)
 	char hostname[MAXHOSTNAMELEN + 1];
 	char *host_ready_path = NULL;
 	struct stat st;
-	struct timespec *host_ready_mtime = NULL;
+	const struct timespec *host_ready_mtime = NULL;
 
 	r = asprintf(&host_ready_path,
 		     SANDBOX_RUN_DIR "/%s/ready", pw->pw_name);
@@ -644,7 +644,6 @@ get_sandbox(pam_handle_t * pamh, const char *mach, const char *svc,
 {
 	sd_bus *bus = NULL;
 	int r;
-	int machine_running = 0;
 	int service_queued = 0;
 	int retry = SANDBOX_RETRY_COUNT;
 	const struct timespec delay = { 0, SANDBOX_RETRY_DELAY };
@@ -667,7 +666,7 @@ get_sandbox(pam_handle_t * pamh, const char *mach, const char *svc,
 		if (r && r != -ENXIO)
 			pam_syslog(pamh, LOG_ERR,
 				   "get_machine_info failed - starting unit\n");
-		machine_running = r == 0;
+		int machine_running = r == 0;
 		if (!service_queued) {
 			/*
 			* We don't actually ever want to restart the unit.

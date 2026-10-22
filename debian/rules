@@ -12,6 +12,7 @@ override_dh_auto_test:
 	shellcheck tmplscripts/system/login/user_isolation.sh
 	shellcheck scripts/cli_sandbox_init
 	shellcheck scripts/cli-sandbox-create
+	cd lib && PYTHONPATH=. python3 -m unittest discover -v -s ../tests
 
 override_dh_installsystemd:
 	dh_installsystemd -p cli-sandbox --name=cli-sandbox@

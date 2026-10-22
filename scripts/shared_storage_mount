@@ -21,12 +21,14 @@ import sys
 import stat
 import grp
 import itertools
-from vyatta.shared_storage import SharedStorage, SharedStorageError, mkdir_p, cmd_run, check_mount
+from vyatta.shared_storage import (SharedStorage, SharedStorageError, mkdir_p,
+                                   cmd_run, check_mount)
 
 SHARED_RUN_CONF = '/run/vyatta/shared_storage/shared_storage.conf'
 SHARED_MOUNT_STATE = '/run/vyatta/shared_storage/shared_mount.conf'
 VYATTA_CFG_GRP = 'vyattacfg'
-MOUNT_ROOT_PERM = stat.S_ISGID | stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH
+MOUNT_ROOT_PERM = (stat.S_ISGID | stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH
+                   | stat.S_IXOTH)
 
 
 def vyattacfg_chgrp(path):
@@ -36,7 +38,7 @@ def vyattacfg_chgrp(path):
         os.chown(path, 0, cfggrp.gr_gid)
         os.chmod(path, MOUNT_ROOT_PERM)
     except (OSError, KeyError) as exc:  # ignore no existing group
-        print("Error: {}".format(str(exc)), file=sys.stderr)
+        print(f"Error: {exc!s}", file=sys.stderr)
     for top, dirs, files in os.walk(path):
         for name in itertools.chain(dirs, files):
             fpath = os.path.join(top, name)
@@ -45,7 +47,8 @@ def vyattacfg_chgrp(path):
                 if name_stat.st_uid != 0 or name_stat.st_gid != cfggrp.gr_gid:
                     os.chown(fpath, 0, cfggrp.gr_gid)
             except OSError as exc:
-                print("Warning: chown {} failed: {}.".format(fpath, str(exc)), file=sys.stderr)
+                print(f"Warning: chown {fpath} failed: {exc!s}.",
+                      file=sys.stderr)
 
 
 def create_new_fs(path, fname, size):
@@ -55,7 +58,7 @@ def create_new_fs(path, fname, size):
         raise SharedStorageError("create_new_fs: no files or size")
     try:
         mkdir_p(os.path.dirname(fname))
-        with open(fname, 'x') as imgf:
+        with open(fname, 'xb') as imgf:
             imgf.truncate(size * 1024 * 1024)
             os.fsync(imgf.fileno())
             mkfs = ['/sbin/mkfs.ext4', '-L', os.path.basename(path), fname]
@@ -63,7 +66,8 @@ def create_new_fs(path, fname, size):
     except FileExistsError:
         pass
     except OSError as exc:
-        raise SharedStorageError("Falied to create backing file at {}:{}".format(fname, str(exc)))
+        raise SharedStorageError(
+            f"Falied to create backing file at {fname}:{exc!s}") from exc
 
 
 def do_mount(path, info):
@@ -72,10 +76,10 @@ def do_mount(path, info):
     what = info['what']
     if os.path.ismount(path):
         if check_mount(what, path):
-            print("warning: not mount {} at {}: already mounted".format(what, path), file=sys.stderr)
+            print(f"warning: not mount {what} at {path}: already mounted",
+                  file=sys.stderr)
             return
-        else:
-            raise SharedStorageError("Can't mount on a mount point")
+        raise SharedStorageError("Can't mount on a mount point")
     mkdir_p(path)
     if os.listdir(path):
         raise SharedStorageError("can't mount on a non-empty directory")
@@ -131,7 +135,8 @@ def reload_shared_mounts(cfgfile, statefile):
             clean_up_shared_storage(path, state.mounts[path])
             cur_real_mounts.discard(path)
         except SharedStorageError as exc:
-            print("Failed to cleaup shared storage {}:{}".format(path, str(exc)), file=sys.stderr)
+            print(f"Failed to cleaup shared storage {path}:{exc!s}",
+                  file=sys.stderr)
     new_mounts = {}
     for path, info in new.mounts.items():
         if path in cur_real_mounts:
@@ -141,7 +146,7 @@ def reload_shared_mounts(cfgfile, statefile):
             do_mount(path, info)
             new_mounts[path] = info
         except SharedStorageError as exc:
-            print("Failed to mount {}:{}".format(path, str(exc)), file=sys.stderr)
+            print(f"Failed to mount {path}:{exc!s}", file=sys.stderr)
     new_state = SharedStorage()
     new_state.validate_and_add_mounts(new_mounts)
     new_state.write(statefile)
