@@ -56,7 +56,7 @@ def create_new_fs(path, fname, size):
     try:
         mkdir_p(os.path.dirname(fname))
         with open(fname, 'x') as imgf:
-            imgf.truncate(size*1024*1024)
+            imgf.truncate(size * 1024 * 1024)
             os.fsync(imgf.fileno())
             mkfs = ['/sbin/mkfs.ext4', '-L', os.path.basename(path), fname]
             cmd_run(mkfs)
@@ -64,6 +64,7 @@ def create_new_fs(path, fname, size):
         pass
     except OSError as exc:
         raise SharedStorageError("Falied to create backing file at {}:{}".format(fname, str(exc)))
+
 
 def do_mount(path, info):
     """mount shared storage at path. All path should have been
@@ -91,6 +92,7 @@ def do_mount(path, info):
     cmd_run(cmd)
     vyattacfg_chgrp(path)
 
+
 def clean_up_shared_storage(path, info):
     """clean up a shared storage mount
     unmount (lazy), remove directory, remove the backing file"""
@@ -103,6 +105,7 @@ def clean_up_shared_storage(path, info):
             print("failed to remove {}:{}", path, str(exc))
     if os.path.isfile(info['what']):
         os.remove(info['what'])
+
 
 def reload_shared_mounts(cfgfile, statefile):
     """Compare cfgfile and statefile.
@@ -143,6 +146,7 @@ def reload_shared_mounts(cfgfile, statefile):
     new_state.validate_and_add_mounts(new_mounts)
     new_state.write(statefile)
 
+
 def main():
     try:
         reload_shared_mounts(SHARED_RUN_CONF, SHARED_MOUNT_STATE)
@@ -150,6 +154,7 @@ def main():
     except SharedStorageError as exc:
         print("Error during shared_storage reload:{}", str(exc))
         sys.exit(1)
+
 
 if __name__ == '__main__':
     main()

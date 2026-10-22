@@ -23,8 +23,8 @@ import re
 import tempfile
 from vyatta.shared_storage import SharedStorage
 from vyatta.sandbox import format_group_database_entry,  \
-                           format_passwd_database_entry, \
-                           parse_group_database
+    format_passwd_database_entry, \
+    parse_group_database
 
 SANDBOX_DEFAULTS = {
     'DISTDIR': '/var/lib/sandbox',
@@ -36,7 +36,7 @@ SANDBOX_DEFAULTS = {
     'SETTINGS_DIR': '/run/systemd/nspawn',
     'ENVFILE': 'cli-sandbox.env',
     'MOVED_MOUNTS': ['/dev/pts', '/run/utmp', '/var/log/wtmp', '/var/log/btmp']
-    }
+}
 
 # ENVFILE vars
 ENV_NSPAWN_TEMPLATE = 'CLI_SANDBOX_NSPAWN_TEMPLATE'
@@ -67,6 +67,7 @@ user_shell="$(basename "${SHELL:-/bin/vbash}")"
 echo "${user_shell}-sandbox: ${cmd}: command not found" >&2
 """
 
+
 def sb_run(cmd, ignore=False, env=None):
     """run a command"""
     try:
@@ -75,11 +76,13 @@ def sb_run(cmd, ignore=False, env=None):
         print('Failed: {}:{}'.format(' '.join(cmd), str(err)), file=sys.stderr)
         sys.exit(1)
 
+
 def get_current_shares():
     """get currenly mounted shares from conf"""
     ss_conf = SharedStorage()
     ss_conf.load(conf_file=SHARED_RUN_CONF)
     return ss_conf.get_current_mounts()
+
 
 def run_shell_cmd(cmd):
     try:
@@ -96,6 +99,7 @@ def run_shell_cmd(cmd):
         line = line.strip()
         return line
     return ""
+
 
 def remove_native_op_cmds(chroot):
     cmd = ['/opt/vyatta/sbin/lu', '-user', 'configd', '/opt/vyatta/bin/opc', '-op', 'complete']
@@ -124,8 +128,10 @@ def remove_native_op_cmds(chroot):
         except OSError as e:
             print("Exception when removing native op commands: {}".format(e))
 
+
 def gen_machine_name(uid):
     return 'cli-{}'.format(uid)
+
 
 def write_command_not_found(chroot):
     """change command-not-found handler in chroot"""
@@ -136,6 +142,7 @@ def write_command_not_found(chroot):
         os.chmod(fname, 0o755)
     except:
         print("Exception when writing {}".format(CNF_FILENAME))
+
 
 def generate_passwd_database(chroot, pw_entry, base_passwd=None):
     """
@@ -168,6 +175,7 @@ def generate_passwd_database(chroot, pw_entry, base_passwd=None):
 
     os.rename(tmp_passwd.name, os.path.join(chroot, 'etc', 'passwd'))
 
+
 def generate_group_database(chroot, pw_entry, base_group=None):
     """
     Generates a limited /etc/group in chroot, overwriting any
@@ -191,7 +199,7 @@ def generate_group_database(chroot, pw_entry, base_group=None):
     The entry for any of the sandboxed user's groups, which are not
     returned from base_groups, will show the user as the only member.
     """
-    user_groups = {g : grp.getgrgid(g) for g in os.getgrouplist(
+    user_groups = {g: grp.getgrgid(g) for g in os.getgrouplist(
         pw_entry.pw_name, pw_entry.pw_gid)}
 
     tmp_group = tempfile.NamedTemporaryFile(
@@ -232,6 +240,7 @@ def generate_group_database(chroot, pw_entry, base_group=None):
 
     os.rename(tmp_group.name, os.path.join(chroot, 'etc', 'group'))
 
+
 def generate_user_databases(chroot, pw_entry,
                             base_passwd=None, base_group=None):
     """
@@ -259,6 +268,7 @@ def generate_user_databases(chroot, pw_entry,
 class UserSandBox:
     """Sandbox class"""
     conf = {k: os.environ.get(k, v) for k, v in SANDBOX_DEFAULTS.items()}
+
     def __init__(self, name):
         self.name = name
 
@@ -355,7 +365,7 @@ class UserSandBox:
         mntcmd = ['/bin/mount', '-t', 'tmpfs',
                   '-o', 'size=' + ROOT_TMP_FS_MAX + ',mode=0755',
                   'tmpfs', self.topdir
-                 ]
+                  ]
         sb_run(mntcmd)
         self._write_env()
         os.mkdir(self.root)
@@ -367,7 +377,7 @@ class UserSandBox:
                   '-o', 'lowerdir={},upperdir={},workdir={}'.format(self.DISTDIR, upper, work),
                   'overlayfs',
                   self.root,
-                 ]
+                  ]
         sb_run(mntcmd)
         self._generate_user_databases()
         remove_native_op_cmds(self.root)
@@ -429,6 +439,7 @@ class UserSandBox:
                  '--directory={}'.format(self.root),
                  '--machine={}'.format(self.machine))
 
+
 def main():
     """Main cli-sandbox Program"""
     parser = ArgumentParser(description='Vyatta CLI Sanbox Service Rootfs Setup tool')
@@ -437,22 +448,22 @@ def main():
                             '--create',
                             help='create temporary rootfs for sandbox',
                             action='store_true'
-                           )
+                            )
     action_grp.add_argument('-u',
                             '--update',
                             help='update an existing sandbox',
                             action='store_true'
-                           )
+                            )
     action_grp.add_argument('-d',
                             '--destroy',
                             help='destroy temporary rootfs for sandbox',
                             action='store_true'
-                           )
+                            )
     action_grp.add_argument('-s',
                             '--start',
                             help='start an existing sandbox',
                             action='store_true'
-                           )
+                            )
     parser.add_argument('name', nargs=1, help='sandbox name')
 
     args = parser.parse_args()
@@ -491,6 +502,7 @@ def main():
             sys.exit(1)
 
     # unreached #
+
 
 if __name__ == '__main__':
     main()

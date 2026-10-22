@@ -5,6 +5,7 @@
 
 import grp
 
+
 def format_passwd_database_entry(passwd):
     """
     Formats a passwd database (ie. /etc/passwd) entry.
@@ -12,6 +13,7 @@ def format_passwd_database_entry(passwd):
     equivalent sequence.
     """
     return (':'.join(str(x) for x in passwd[0:7]))
+
 
 def format_group_database_entry(group):
     """
@@ -21,6 +23,7 @@ def format_group_database_entry(group):
     """
     return ':'.join(str(x) for x in group[0:3]) + \
         ':' + ','.join(group[3])
+
 
 def parse_group_database(db_iter):
     """

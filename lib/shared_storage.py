@@ -139,6 +139,7 @@ class SharedStorage:
     of directory mounts and read-only directories as specified in
     vyatta configuration. The configuration is stored in a yaml format.
     """
+
     def __init__(self):
         self.mounts = {}
         self.dirs = {}
