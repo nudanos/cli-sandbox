@@ -1,3 +1,12 @@
+cli-sandbox (0.31) trixie; urgency=medium
+
+  * Code-quality lint fixes (distro docs/porting.md): analyzer findings
+    fixed, see the git log.
+  * The shared storage configuration is read with yaml.safe_load, which
+    PyYAML 6 needs; its loader has unit tests.
+
+ -- NuDanOS Maintainers <jon@fernandez.tech>  Fri, 23 Oct 2026 12:17:29 +0000
+
 cli-sandbox (0.30) trixie; urgency=medium
 
   * pam-sandbox.prerm: remove the PAM profile postinst copies into
