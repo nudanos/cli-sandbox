@@ -1,2 +1,3 @@
-usr/lib/security/pam_sandbox.so
+usr/lib/*/security/pam_sandbox.so
 opt/vyatta/share/pam-configs/sandbox
+scripts/pam-sandbox-check opt/vyatta/sbin/

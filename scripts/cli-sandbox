@@ -20,6 +20,7 @@ import glob
 import grp
 import pwd
 import re
+import sysconfig
 import tempfile
 from vyatta.shared_storage import SharedStorage
 from vyatta.sandbox import format_group_database_entry,  \
@@ -340,6 +341,12 @@ class UserSandBox:
         bindfmt = "Bind={}\n"
         with open(self.settings, 'a', encoding='utf-8') as fout:
             fout.write("\n[Files]\n")
+            # Old sandbox roots expect the module from the host. New roots
+            # get their matching module and dependencies with password renewal.
+            multiarch = sysconfig.get_config_var('MULTIARCH') or ''
+            module = os.path.join('/usr/lib', multiarch, 'security', 'pam_vyatta_passwd.so')
+            if not os.path.isfile(os.path.join(self.DISTDIR, module.lstrip('/'))):
+                fout.write(f"BindReadOnly={module}\n")
             if os.path.isdir(self.pw_entry.pw_dir):
                 fout.write(bindfmt.format(self.pw_entry.pw_dir))
             for shared_dir in get_current_shares():

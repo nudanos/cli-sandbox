@@ -4,12 +4,14 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 DPKG_EXPORT_BUILDFLAGS=1
 
 include /usr/share/dpkg/default.mk
+export PAM_MODULE_DIR = /usr/lib/$(DEB_HOST_MULTIARCH)/security
 
 %:
 	dh $@ --with yang --with python3
 
 override_dh_auto_test:
 	shellcheck tmplscripts/system/login/user_isolation.sh
+	shellcheck scripts/pam-sandbox-check
 	shellcheck scripts/cli_sandbox_init
 	shellcheck scripts/cli-sandbox-create
 	cd lib && PYTHONPATH=. python3 -m unittest discover -v -s ../tests

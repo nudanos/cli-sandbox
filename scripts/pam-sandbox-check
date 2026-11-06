@@ -1,0 +1,41 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# Succeed only when the selected PAM service files do not load pam_sandbox.
+scope=${1:-all}
+set --
+for path in /etc/pam.d/* /usr/lib/pam.d/*; do
+    [ -f "$path" ] || continue
+    name=${path##*/}
+    case "$name" in *.pam-old|*.pam-new|*~) continue ;; esac
+    if [ "$scope" = --outside-common-session ] && [ "$name" = common-session ]; then
+        continue
+    fi
+    # An administrator's service file takes precedence over the vendor file.
+    if [ "$path" = "/usr/lib/pam.d/$name" ] && [ -f "/etc/pam.d/$name" ]; then
+        continue
+    fi
+    set -- "$@" "$path"
+done
+[ "$#" -gt 0 ] || exit 0
+
+awk '
+FNR == 1 { rule = "" }
+{
+    sub(/#.*/, "")
+    if (sub(/\\[[:space:]]*$/, " ")) {
+        rule = rule $0
+        next
+    }
+    rule = rule $0
+    if (tolower(rule) ~ /^[[:space:]]*-?(auth|account|password|session)[[:space:]]+/) {
+        sub(/^[[:space:]]*[^[:space:]]+[[:space:]]+/, "", rule)
+        sub(/^(\[[^]]*\]|[^[:space:]]+)[[:space:]]+/, "", rule)
+        if (rule ~ /^([^[:space:]]*\/)?pam_sandbox\.so([[:space:]]|$)/) {
+            print "PAM still loads pam_sandbox.so in " FILENAME > "/dev/stderr"
+            found = 1
+        }
+    }
+    rule = ""
+}
+END { if (found) exit 1 }
+' "$@"

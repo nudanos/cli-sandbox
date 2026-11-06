@@ -1,3 +1,11 @@
+cli-sandbox (0.32) trixie; urgency=medium
+
+  * Require working Debian PAM and systemd integration before isolation.
+  * Propagate activation failures and preserve administrator PAM changes.
+  * Activate from the optional feature package only after preparing its root.
+
+ -- Jon Fernandez <jon@fernandez.tech>  Fri, 06 Nov 2026 12:00:00 -0700
+
 cli-sandbox (0.31) trixie; urgency=medium
 
   * Code-quality lint fixes (distro docs/porting.md): analyzer findings

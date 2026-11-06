@@ -1,9 +1,16 @@
-#! /bin/sh -e
+#!/bin/sh
+set -e
 
 if [ "$1" = remove ]; then
-    pam-auth-update --package --remove sandbox
-    # copied in by postinst, not owned by dpkg
-    rm -f /usr/share/pam-configs/sandbox
+    check=/opt/vyatta/sbin/pam-sandbox-check
+    test -r /etc/pam.d/common-session
+    "$check" --outside-common-session
+    DEBIAN_FRONTEND=noninteractive pam-auth-update --package --remove sandbox
+    "$check"
+    profile=/usr/share/pam-configs/sandbox
+    if [ ! -L "$profile" ] && cmp -s /opt/vyatta/share/pam-configs/sandbox "$profile"; then
+        rm -f "$profile"
+    fi
 fi
 
 #DEBHELPER#

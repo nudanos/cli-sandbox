@@ -38,7 +38,7 @@ Description: Systemd nspawn services for the login session sandbox
 
 Package: pam-sandbox
 Architecture: any
-Depends: cli-sandbox, ${shlibs:Depends}, ${misc:Depends}
+Depends: cli-sandbox, libpam-runtime, ${shlibs:Depends}, ${misc:Depends}
 Description: PAM module for user sandboxing
  This package provides the pam-sandbox module that can be used
  to sandbox user's login sessions
