@@ -1,7 +1,12 @@
 #!/bin/sh
 set -e
 case "$1" in
-    configure) /usr/sbin/cli-sandbox-create || echo "warning: could not create the sandbox root; run cli-sandbox-create" >&2 ;;
+    configure)
+        if [ -z "${2:-}" ]; then
+            cli-sandbox-create
+            /opt/vyatta/share/tmplscripts/system/login/user_isolation.sh enable
+        fi
+        ;;
 esac
 #DEBHELPER#
 exit 0

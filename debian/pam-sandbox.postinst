@@ -1,9 +1,6 @@
 #!/bin/sh -e
 
-if [ "$1" = configure ]; then
-    cp -f /opt/vyatta/share/pam-configs/sandbox /usr/share/pam-configs/
-    pam-auth-update --package
-fi
+# Activation is performed by the user-isolation hook after runtime preflight.
 
 #DEBHELPER#
 
