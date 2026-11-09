@@ -1,3 +1,10 @@
+cli-sandbox (0.33) trixie; urgency=medium
+
+  * Allow privileged login to reopen its validated physical session terminal
+    after entering the sandbox, using a root-only device alias.
+
+ -- Jon Fernandez <jon@fernandez.tech>  Mon, 09 Nov 2026 12:00:00 -0700
+
 cli-sandbox (0.32) trixie; urgency=medium
 
   * Require working Debian PAM and systemd integration before isolation.

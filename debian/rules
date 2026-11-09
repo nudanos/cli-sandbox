@@ -10,6 +10,7 @@ export PAM_MODULE_DIR = /usr/lib/$(DEB_HOST_MULTIARCH)/security
 	dh $@ --with yang --with python3
 
 override_dh_auto_test:
+	$(MAKE) check
 	shellcheck tmplscripts/system/login/user_isolation.sh
 	shellcheck scripts/pam-sandbox-check
 	shellcheck scripts/cli_sandbox_init
