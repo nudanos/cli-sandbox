@@ -10,19 +10,27 @@ CFLAGS += $(MY_CFLAGS)
 LDLIBS	+= $(shell pkg-config --libs libsystemd)
 LDLIBS	+= -lpam
 LDFLAGS	+= -shared
-SRC	:= $(SRCDIR)/pam_sandbox.c
+SRC	:= $(SRCDIR)/pam_sandbox.c $(SRCDIR)/session_terminal.c
 OBJ	:= $(SRC:.c=.o)
 
 TARGET_LIB	:= $(SRCDIR)/pam_sandbox.so
 PAM_MODULE_DIR ?= /usr/lib/security
 
+.PHONY: all check install clean
+
 all: $(TARGET_LIB)
+
+check:
+	$(CC) $(CFLAGS) $(CPPFLAGS) tests/session-terminal.c -o tests/session-terminal $(filter-out -shared,$(LDFLAGS)) -lutil
+	./tests/session-terminal
 
 $(TARGET_LIB): $(OBJ)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(OBJ) -o $(TARGET_LIB) $(LDFLAGS) $(LDLIBS)
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+$(OBJ): $(SRCDIR)/session_terminal.h
 
 install: $(TARGET_LIB)
 	install -D -m644 $(TARGET_LIB) $(DESTDIR)$(PAM_MODULE_DIR)/pam_sandbox.so
@@ -31,4 +39,4 @@ install: $(TARGET_LIB)
 		$(DESTDIR)/opt/vyatta//share/pam-configs/sandbox
 
 clean:
-	rm -f $(OBJ) $(TARGET_LIB)
+	rm -f $(OBJ) $(TARGET_LIB) tests/session-terminal

@@ -38,6 +38,7 @@
 #include <security/pam_ext.h>
 #include <security/pam_modutil.h>
 #include <security/_pam_macros.h>
+#include "session_terminal.h"
 
 #define PAM_SOCK "/var/run/pam.sock"
 #define PAM_SECURITY_CONF_PATH "/etc/security/pam.conf"
@@ -70,9 +71,11 @@ typedef struct sandbox_info {
 } sandbox_info_t;
 
 static int is_sandboxed(pam_handle_t * pamh, const struct passwd *pw);
-static int enter_sandbox(pam_handle_t * pamh, const struct passwd *pw);
+static int enter_sandbox(pam_handle_t * pamh, const struct passwd *pw,
+                        const struct sandbox_terminal *terminal);
 static int wait_for_file(const char *fname, const struct timespec *mtime);
-static int add_to_namespaces(pam_handle_t * pamh, pid_t tpid);
+static int add_to_namespaces(pam_handle_t * pamh, pid_t tpid,
+                            const struct sandbox_terminal *terminal);
 static void free_sandbox_info(sandbox_info_t * info);
 static int get_machine_info(pam_handle_t * pamh, sd_bus * bus,
 			    const char *name, sandbox_info_t * info);
@@ -105,6 +108,7 @@ int pam_sm_open_session(pam_handle_t * pamh, __attribute__ ((unused))
 	int r;
 	const struct passwd *pw;
 	int enter_sandbox_retry = 1;
+	struct sandbox_terminal terminal;
 
 	r = pam_get_user(pamh, &username, NULL);
 	if (r != PAM_SUCCESS) {
@@ -122,13 +126,20 @@ int pam_sm_open_session(pam_handle_t * pamh, __attribute__ ((unused))
 	if (!is_sandboxed(pamh, pw)) {
 		return PAM_SUCCESS;
 	}
+	/* Capture once: a failed entry may already have changed the namespaces
+	 * and root directory before the retry.
+	 */
+	if (sandbox_terminal_capture(&terminal, STDIN_FILENO) < 0) {
+		pam_syslog(pamh, LOG_ERR, "failed to validate session terminal: %m");
+		return PAM_SESSION_ERR;
+	}
 	/* Retry entering sanbox once as it is possible that
 	 * earlier sandbox might have exited
 	 * after this session detected its presence, but before
 	 * this session has attempted to switch namespaces.
 	 */
 	while(enter_sandbox_retry-- >= 0) {
-		r = enter_sandbox(pamh, pw);
+		r = enter_sandbox(pamh, pw, &terminal);
 		if (r == 0)
 			return PAM_SUCCESS;
 	}
@@ -172,7 +183,8 @@ static int is_sandboxed(pam_handle_t * pamh, const struct passwd *pw)
  * 2. chroot into the containers root directory.
  * 3. Setup the container hostname to be same as host
  */
-static int enter_sandbox(pam_handle_t * pamh, const struct passwd *pw)
+static int enter_sandbox(pam_handle_t * pamh, const struct passwd *pw,
+                         const struct sandbox_terminal *terminal)
 {
 	int r;
 	sandbox_info_t info = { };
@@ -232,7 +244,7 @@ static int enter_sandbox(pam_handle_t * pamh, const struct passwd *pw)
 		}
 	}
 
-	r = add_to_namespaces(pamh, info.leader);
+	r = add_to_namespaces(pamh, info.leader, terminal);
 
 	if (r < 0) {
 		pam_syslog(pamh, LOG_ERR,
@@ -393,7 +405,8 @@ static int check_setns(int new_fd, int old_fd)
 /*
  * Switch to namespaces of the leader's pid
  */
-static int add_to_namespaces(pam_handle_t * pamh, pid_t tpid)
+static int add_to_namespaces(pam_handle_t * pamh, pid_t tpid,
+                            const struct sandbox_terminal *terminal)
 {
 	int ret = -1;
 	char *pathbuf = NULL;
@@ -443,6 +456,10 @@ static int add_to_namespaces(pam_handle_t * pamh, pid_t tpid)
 	}
 	if (chroot(".") < 0) {
 		pam_syslog(pamh, LOG_ERR, "failed chroot to root directory\n");
+		goto out;
+	}
+	if (sandbox_terminal_install(terminal, "/dev") < 0) {
+		pam_syslog(pamh, LOG_ERR, "failed to prepare session terminal: %m");
 		goto out;
 	}
 
